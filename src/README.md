@@ -1,6 +1,7 @@
 # Launching Command
 ## update 17.07
-###
+github不能上传超过100MB的文件，需要把原来的simulation包拖到src文件夹中
+### Commands
 先给这个权限 
 ```bash
 cd src #你的文件夹所在位置
