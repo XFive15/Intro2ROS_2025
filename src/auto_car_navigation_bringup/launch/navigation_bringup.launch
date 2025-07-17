@@ -1,0 +1,32 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="map_file" default="$(find auto_car_navigation_bringup)/maps/map.yaml"/>
+  <arg name="open_rviz" default="false"/>
+  <arg name="move_forward_only" default="false"/>
+  <arg name="nav_node_start_delay" default="1.0" />
+  
+  <!-- odom_pub（带延迟启动） -->
+  <node pkg="auto_car_utils" name="odom_pub_delayed" type="odom_pub" launch-prefix="bash -c 'sleep 2; $0 $@'" />
+
+  <!-- Map server -->
+  <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)" launch-prefix="bash -c 'sleep $(arg nav_node_start_delay); $0 $@'" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="world_map_trans" args="0 0 0 0 0 0 world map"/>
+  <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_OurCar_INS" args="0 0 0 0 0 0 world OurCar/INS"/>
+
+  <!-- move_base -->
+  <include file="$(find auto_car_navigation_bringup)/launch/move_base_teb_local_planner.launch">
+    <!-- <arg name="move_forward_only" value="$(arg move_forward_only)"/> -->
+  </include>
+
+  <!-- mis -->
+  <!-- <node pkg="auto_car_utils" name="twist2vc" type="twist2vc" /> -->
+  <!-- 删除这个重复的 odom_pub -->
+  <!-- <node pkg="auto_car_utils" name="odom_pub" type="odom_pub" /> -->
+
+  <!-- rviz -->
+  <group if="$(arg open_rviz)"> 
+    <node pkg="rviz" type="rviz" name="rviz" required="true"
+          args="-d $(find auto_car_navigation_bringup)/rviz/turtlebot3_navigation.rviz"/>
+  </group>
+</launch>
+

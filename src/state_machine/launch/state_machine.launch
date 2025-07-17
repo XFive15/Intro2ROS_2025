@@ -1,0 +1,7 @@
+<launch>
+  <node pkg="auto_car_utils" name="twist2vc" type="twist2vc"/>
+  <node pkg="auto_car_perception" name="traffic" type="traffic"/>
+  <node pkg="auto_car_perception" name="obstacle_detection_node" type="obstacle_detection_node"/>
+  <node pkg="state_machine" name="safety_monitor_node" type="safety_monitor_node" output="screen"/>
+  <node pkg="auto_car_utils" name="goal_pub" type="goal_pub"/>
+</launch>
