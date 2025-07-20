@@ -1,7 +1,7 @@
 #include "traffic.h"
 
 ColorDetectionNode::ColorDetectionNode()
-    : rgb_received(false)
+    : rgb_received(false), depth_received(false)
 {
     ros::NodeHandle nh;
 
@@ -24,10 +24,10 @@ ColorDetectionNode::ColorDetectionNode()
     vehicle_control_pub = nh.advertise<simulation::VehicleControl>("/car_command", 10);
     
     detection_areas.push_back({-64.0, -61.0, -13.0, -10.0});
-    detection_areas.push_back({225.0, 230.0, 11.0, 20.0});
-    detection_areas.push_back({133.0, 140.0, 2.0, 6.0});
-    detection_areas.push_back({42.0, 47.0, 9.0, 17.0});
-    detection_areas.push_back({-50.0, -39.0, -3.0, 4.0});
+    detection_areas.push_back({225.0, 230.0, 9.0, 20.0});
+    detection_areas.push_back({133.0, 141.0, 2.0, 6.0});
+    detection_areas.push_back({42.0, 47.0, 8.0, 17.0});
+    detection_areas.push_back({-47.0, -35.0, -3.0, 4.0});
 
     pose_sub = nh.subscribe("/Unity_ROS_message_Rx/OurCar/CoM/pose", 1, &ColorDetectionNode::poseCallback, this);
 }
@@ -68,15 +68,21 @@ void ColorDetectionNode::poseCallback(const geometry_msgs::PoseStamped::ConstPtr
         }
     }
 
-    ROS_INFO_THROTTLE(5.0, "Current pos: (%.2f, %.2f), in area: %s",
-                      x, y, in_detection_area ? "YES" : "NO");
+    //ROS_INFO_THROTTLE(5.0, "Current pos: (%.2f, %.2f), in area: %s",
+                      //x, y, in_detection_area ? "YES" : "NO");
 }
 
 //语义相机图像回调
 void ColorDetectionNode::semanticCameraCallback(const sensor_msgs::ImageConstPtr& msg)
 {
+    bool has_light = false;
+    std_msgs::Bool stop_msg;
+    stop_msg.data = false;
+
     if (!rgb_received) {
         // ROS_WARN("No RGB image received yet, skipping semantic callback.");
+        std_msgs::Bool presence_msg; presence_msg.data = false;
+        traffic_light_presence_pub.publish(presence_msg);
         return;
     }
 
@@ -85,6 +91,7 @@ void ColorDetectionNode::semanticCameraCallback(const sensor_msgs::ImageConstPtr
         semantic_image = cv_bridge::toCvCopy(msg, "bgr8")->image;
     } catch (cv_bridge::Exception& e) {
         ROS_ERROR("cv_bridge error (semantic): %s", e.what());
+        traffic_light_presence_pub.publish(std_msgs::Bool());
         return;
     }
 
@@ -103,56 +110,83 @@ void ColorDetectionNode::semanticCameraCallback(const sensor_msgs::ImageConstPtr
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-    // 发布有红绿灯的信息
-    std_msgs::Bool light_presence_msg;
-    light_presence_msg.data = !contours.empty();
-    traffic_light_presence_pub.publish(light_presence_msg);
-
-    if (!in_detection_area) {
-        ROS_INFO_THROTTLE(5.0, "Not in detection area, skipping traffic light detection logic.");
-        return;
-    }
-
-    ROS_INFO("Found %lu Traffic Light(s)", contours.size());
-
-    if (contours.empty()) {
-        std_msgs::Bool stop_msg; stop_msg.data = false; stop_pub.publish(stop_msg);
-        return;
-    }
-
-    // 按中心距离排序
-    double cx = rgb_image.cols / 2.0;
-
-    std::sort(contours.begin(), contours.end(), [cx](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-        auto ra = cv::boundingRect(a);
-        auto rb = cv::boundingRect(b);
-
-        double center_ax = ra.x + ra.width / 2.0;
-        double center_bx = rb.x + rb.width / 2.0;
-
-        return std::abs(center_ax - cx) < std::abs(center_bx - cx);
-    });
-
-    auto contour = contours.front();
-    auto rect = cv::boundingRect(contour);
+    double distance = std::numeric_limits<double>::infinity();
 
     cv::Mat debug_img = rgb_image.clone();
-    cv::rectangle(debug_img, rect, cv::Scalar(0, 255, 0), 2);
 
-    int pad = 0;
-    int x = std::max(0, rect.x - pad);
-    int y = std::max(0, rect.y - pad);
-    int w = std::min(rect.width + 2 * pad, rgb_image.cols - x);
-    int h = std::min(rect.height + 2 * pad, rgb_image.rows - y);
-
-    if (w > 0 && h > 0)
-    {
-        cv::Mat roi = rgb_image(cv::Rect(x, y, w, h));
-        detectColorsInROI(roi);
+    if (in_detection_area) {
+        has_light = true;
     }
 
+    if (!contours.empty())
+    {
+        // 按中心距离排序
+        double cx = rgb_image.cols / 2.0;
+
+        std::sort(contours.begin(), contours.end(), [cx](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
+            auto ra = cv::boundingRect(a);
+            auto rb = cv::boundingRect(b);
+
+            double center_ax = ra.x + ra.width / 2.0;
+            double center_bx = rb.x + rb.width / 2.0;
+
+            return std::abs(center_ax - cx) < std::abs(center_bx - cx);
+        });
+
+        auto contour = contours.front();
+        auto rect = cv::boundingRect(contour);
+
+        // 检测距离
+        if (depth_received &&
+            rect.x >= 0 && rect.y >= 0 &&
+            rect.x+rect.width  <= depth_image.cols &&
+            rect.y+rect.height <= depth_image.rows)
+        {
+            int cx_d = rect.x + rect.width /2;
+            int cy_d = rect.y + rect.height/2;
+
+            int count=0;
+            double sum=0;
+            for(int dy=-1; dy<=1; ++dy)
+                for(int dx=-1; dx<=1; ++dx){
+                    float z = depth_image.at<float>(cy_d+dy, cx_d+dx);
+                    if (std::isfinite(z) && z>0.01){
+                        sum += z;  ++count;
+                    }
+                }
+            if (count>0) distance = sum / count / 1000;
+        }
+
+        ROS_INFO_THROTTLE(1.0, "Traffic light distance: %.2f m", distance);
+
+        if (distance <= 33.0) {
+        has_light = true;
+        }
+
+        if (in_detection_area) {
+            int pad = 0;
+            int x = std::max(0, rect.x - pad);
+            int y = std::max(0, rect.y - pad);
+            int w = std::min(rect.width  + 2*pad, rgb_image.cols - x);
+            int h = std::min(rect.height + 2*pad, rgb_image.rows - y);
+
+            if (w > 0 && h > 0) {
+                cv::Mat roi = rgb_image(cv::Rect(x, y, w, h));
+                detectColorsInROI(roi);   
+            } 
+        } else {
+            ROS_INFO_THROTTLE(5.0, "Not in detection area, skipping color check.");
+        }
+    } else {
+        stop_pub.publish(stop_msg);
+    }
+        
+    std_msgs::Bool presence_msg;
+    presence_msg.data = has_light;
+    traffic_light_presence_pub.publish(presence_msg);
+
     sensor_msgs::Image debug_msg;
-    debug_msg = *cv_bridge::CvImage(msg->header, "bgr8", debug_img).toImageMsg();
+    debug_msg = *cv_bridge::CvImage(msg->header,"bgr8",debug_img).toImageMsg();
     result_pub.publish(debug_msg);
 }
 

@@ -17,29 +17,35 @@ SafetyMonitor::SafetyMonitor(ros::NodeHandle& nh)
     obstacle_stop_sub_ = nh_.subscribe("/obstacle_stop", 1, &SafetyMonitor::obstacleStopCallback, this);
     obstacle_slow_sub_ = nh_.subscribe("/obstacle_slow", 1, &SafetyMonitor::obstacleSlowCallback, this);
     cmd_vel_sub_ = nh_.subscribe("/cmd_vel", 1, &SafetyMonitor::cmdVelCallback, this);
-
     
     safe_cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>("/safe_cmd_vel", 1);
     
-    ROS_INFO("Safety Monitor initialized");
+    ROS_INFO("Safety Monitor initialized with dual slow-down states");
 }
 
 void SafetyMonitor::update()
 {
+    // State transition logic with priority: STOP > TRAFFIC SLOW > OBSTACLE SLOW > NORMAL
     if (stop_condition_active_ || obstacle_stop_active_) {
         current_state_ = State::STOP;
-    } else if (traffic_light_active_ || obstacle_slow_active_) {
-        current_state_ = State::SLOW_DOWN;
+    } else if (traffic_light_active_) {
+        current_state_ = State::SLOW_DOWN_TRAFFIC;
+    } else if (obstacle_slow_active_) {
+        current_state_ = State::SLOW_DOWN_OBSTACLE;
     } else {
         current_state_ = State::NORMAL;
     }
 
+    // State execution logic
     switch (current_state_) {
         case State::NORMAL:
             publishNormalVelocity();
             break;
-        case State::SLOW_DOWN:
-            publishLimitedVelocity();
+        case State::SLOW_DOWN_TRAFFIC:
+            publishLimitedVelocity(0.18);  // Traffic light slow speed
+            break;
+        case State::SLOW_DOWN_OBSTACLE:
+            publishLimitedVelocity(0.35);  // Obstacle slow speed
             break;
         case State::STOP:
             publishZeroVelocity();
@@ -47,7 +53,7 @@ void SafetyMonitor::update()
     }
 }
 
-
+// Callback implementations remain unchanged
 void SafetyMonitor::stopCallback(const std_msgs::Bool::ConstPtr& msg) {
     if (msg->data != prev_stop_condition_) {
         ROS_INFO_COND(msg->data, "Stop condition activated (traffic light)");
@@ -84,11 +90,11 @@ void SafetyMonitor::obstacleSlowCallback(const std_msgs::Bool::ConstPtr& msg) {
     obstacle_slow_active_ = msg->data;
 }
 
-
 void SafetyMonitor::cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg) {
     last_cmd_vel_ = *msg;
 }
 
+// Velocity publishing implementations
 void SafetyMonitor::publishZeroVelocity() {
     geometry_msgs::Twist cmd;
     cmd.linear.x = 0;
@@ -96,15 +102,20 @@ void SafetyMonitor::publishZeroVelocity() {
     safe_cmd_vel_pub_.publish(cmd);
 }
 
-void SafetyMonitor::publishLimitedVelocity() {
+void SafetyMonitor::publishLimitedVelocity(double max_speed) {
     geometry_msgs::Twist cmd = last_cmd_vel_;
-    if (cmd.linear.x > SLOW_SPEED) {
-        cmd.linear.x = SLOW_SPEED;
+    
+    // Limit linear velocity
+    if (cmd.linear.x > max_speed) {
+        cmd.linear.x = max_speed;
     }
-    // const double MAX_ANGULAR = 0.5;
-    // if (std::abs(cmd.angular.z) > MAX_ANGULAR) {
-    //     cmd.angular.z = (cmd.angular.z > 0) ? MAX_ANGULAR : -MAX_ANGULAR;
-    // }
+    
+    // Limit angular velocity (unchanged from original)
+    const double MAX_ANGULAR = 0.5;
+    if (std::abs(cmd.angular.z) > MAX_ANGULAR) {
+        cmd.angular.z = (cmd.angular.z > 0) ? MAX_ANGULAR : -MAX_ANGULAR;
+    }
+    
     safe_cmd_vel_pub_.publish(cmd);
 }
 

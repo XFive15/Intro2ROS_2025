@@ -8,6 +8,7 @@
 #include <opencv2/opencv.hpp>
 #include <simulation/VehicleControl.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <limits> 
 
 struct Area {
     double x_min, x_max;

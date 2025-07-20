@@ -8,7 +8,7 @@ int main(int argc, char** argv)
     
     SafetyMonitor monitor(nh);
     
-    ros::Rate rate(10);  // 10Hz
+    ros::Rate rate(10);  
     while (ros::ok()) {
         monitor.update();
         ros::spinOnce();
