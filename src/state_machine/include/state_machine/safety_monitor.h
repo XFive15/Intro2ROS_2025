@@ -56,6 +56,7 @@ private:
     ros::Subscriber obstacle_slow_sub_;
     ros::Subscriber cmd_vel_sub_;
     ros::Publisher safe_cmd_vel_pub_;
+    ros::Publisher status_pub_;
 };
 
 #endif
