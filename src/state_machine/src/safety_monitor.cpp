@@ -1,4 +1,5 @@
 #include "safety_monitor.h"
+#include "state_machine/StateStatus.h"
 
 SafetyMonitor::SafetyMonitor(ros::NodeHandle& nh) 
     : nh_(nh), 
@@ -19,7 +20,7 @@ SafetyMonitor::SafetyMonitor(ros::NodeHandle& nh)
     cmd_vel_sub_ = nh_.subscribe("/cmd_vel", 1, &SafetyMonitor::cmdVelCallback, this);
     
     safe_cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>("/safe_cmd_vel", 1);
-    
+    status_pub_=nh.advertise<state_machine::StateStatus>("/state_status",10);
     ROS_INFO("Safety Monitor initialized with dual slow-down states");
 }
 
@@ -35,22 +36,35 @@ void SafetyMonitor::update()
     } else {
         current_state_ = State::NORMAL;
     }
-
+            
+            state_machine::StateStatus status_msg;
+            status_msg.stop_condition = stop_condition_active_;
+            status_msg.traffic_light_detected = traffic_light_active_;
+            status_msg.obstacle_stop = obstacle_stop_active_;
+            status_msg.obstacle_slow = obstacle_slow_active_;
+            status_msg.current_cmd_vel = last_cmd_vel_;
+            
     // State execution logic
     switch (current_state_) {
         case State::NORMAL:
             publishNormalVelocity();
+            status_msg.current_state = "NORMAL";
             break;
         case State::SLOW_DOWN_TRAFFIC:
-            publishLimitedVelocity(0.18);  // Traffic light slow speed
+            publishLimitedVelocity(0.18);
+            status_msg.current_state = "SLOW_DOWN_TRIFFIC";  // Traffic light slow speed
             break;
         case State::SLOW_DOWN_OBSTACLE:
-            publishLimitedVelocity(0.35);  // Obstacle slow speed
+            publishLimitedVelocity(0.35);
+            status_msg.current_state = "SLOW_DOWN_OBSTACLE";  // Obstacle slow speed
             break;
         case State::STOP:
             publishZeroVelocity();
+            status_msg.current_state = "STOP";
             break;
+            
     }
+    status_pub_.publish(status_msg);
 }
 
 // Callback implementations remain unchanged

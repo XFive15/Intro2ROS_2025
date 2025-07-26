@@ -1,0 +1,6 @@
+string current_state
+bool stop_condition
+bool traffic_light_detected
+bool obstacle_stop
+bool obstacle_slow
+geometry_msgs/Twist current_cmd_vel
