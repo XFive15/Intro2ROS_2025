@@ -26,8 +26,8 @@ ColorDetectionNode::ColorDetectionNode()
     detection_areas.push_back({-64.0, -61.0, -13.0, -10.0});
     detection_areas.push_back({225.0, 230.0, 9.0, 20.0});
     detection_areas.push_back({133.0, 141.0, 2.0, 6.0});
-    detection_areas.push_back({42.0, 47.0, 8.0, 17.0});
-    detection_areas.push_back({-47.0, -35.0, -3.0, 4.0});
+    detection_areas.push_back({42.0, 47.0, 8.5, 17.0});
+    detection_areas.push_back({-48.0, -35.0, -3.0, 4.0});
 
     pose_sub = nh.subscribe("/Unity_ROS_message_Rx/OurCar/CoM/pose", 1, &ColorDetectionNode::poseCallback, this);
 }
