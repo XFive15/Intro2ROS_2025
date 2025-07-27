@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   tf
   tf2
+  auto_car_perception
 )
 
 ## Find OpenCV if needed

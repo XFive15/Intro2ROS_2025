@@ -9,6 +9,7 @@
 #include <cmath>
 #include <algorithm>
 #include <limits>
+#include <auto_car_perception/ObstacleState.h>
 
 ObstacleDetectionNode::ObstacleDetectionNode()
     : tf_listener(tf_buffer),
@@ -66,8 +67,8 @@ ObstacleDetectionNode::ObstacleDetectionNode()
                                 &ObstacleDetectionNode::carPoseCallback, this);
 
     obstacles_pub = nh.advertise<geometry_msgs::PoseArray>("/obstacles", 10);
-    obstacle_slow_pub = nh.advertise<std_msgs::Bool>("/obstacle_slow", 10);
-    obstacle_stop_pub = nh.advertise<std_msgs::Bool>("/obstacle_stop", 10);
+    obstacle_slow_pub = nh.advertise<auto_car_perception::ObstacleState>("/obstacle_slow", 10);
+    obstacle_stop_pub = nh.advertise<auto_car_perception::ObstacleState>("/obstacle_stop", 10);
 
     try {
         tf_buffer.canTransform(world_frame, camera_frame, ros::Time(0), ros::Duration(10.0));
@@ -152,12 +153,12 @@ void ObstacleDetectionNode::checkObstacleDistances(const geometry_msgs::PoseArra
         }
     }
 
-    std_msgs::Bool stop_msg;
-    stop_msg.data = obstacle_stop_state_;
+    auto_car_perception::ObstacleState stop_msg;
+    stop_msg.state = obstacle_stop_state_;
     obstacle_stop_pub.publish(stop_msg);
 
-    std_msgs::Bool slow_msg;
-    slow_msg.data = obstacle_slow;
+    auto_car_perception::ObstacleState slow_msg;
+    slow_msg.state = obstacle_slow;
     obstacle_slow_pub.publish(slow_msg);
 
     ROS_INFO_THROTTLE(1.0, "Obstacle conditions: stop=%s (state), slow=%s (current)",

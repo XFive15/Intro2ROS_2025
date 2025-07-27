@@ -77,15 +77,15 @@ void GoalPublisher::publishGoal(const geometry_msgs::Point& goal_point)
                                         << goal_point.y << ")");
 }
 
-void GoalPublisher::stopCallback(const std_msgs::Bool::ConstPtr& msg)
+void GoalPublisher::stopCallback(const auto_car_perception::ObstacleState::ConstPtr& msg)
 {
-    if (msg->data && !stop_)
+    if (msg->state && !stop_)
     {
         stop_ = true;
         cancel_pub_.publish(actionlib_msgs::GoalID());
         ROS_INFO("Stopping the car.");
     }
-    else if (!msg->data && stop_)
+    else if (!msg->state && stop_)
     {
         stop_ = false;
         publishGoal(goal_points_[current_goal_index_]);

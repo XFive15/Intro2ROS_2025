@@ -6,7 +6,7 @@
 #include <sensor_msgs/CameraInfo.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseArray.h>
-#include <std_msgs/Bool.h>
+#include <auto_car_perception/ObstacleState.h>
 #include <cv_bridge/cv_bridge.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>

@@ -1,5 +1,5 @@
 #include "traffic.h"
-
+#include "auto_car_perception/ObstacleState.h"
 ColorDetectionNode::ColorDetectionNode()
     : rgb_received(false), depth_received(false)
 {
@@ -17,17 +17,17 @@ ColorDetectionNode::ColorDetectionNode()
         "/Unity_ROS_message_Rx/OurCar/Sensors/DepthCamera/image_raw", 1,
         &ColorDetectionNode::depthCameraCallback, this);
 
-    traffic_light_presence_pub = nh.advertise<std_msgs::Bool>("/traffic_light_presence", 10);
+    traffic_light_presence_pub = nh.advertise<auto_car_perception::ObstacleState>("/traffic_light_presence", 10);
 
     result_pub = nh.advertise<sensor_msgs::Image>("/Traffic_Debug", 1);
-    stop_pub = nh.advertise<std_msgs::Bool>("/stop", 10);
+    stop_pub = nh.advertise<auto_car_perception::ObstacleState>("/stop", 10);
     vehicle_control_pub = nh.advertise<simulation::VehicleControl>("/car_command", 10);
     
     detection_areas.push_back({-64.0, -61.0, -13.0, -10.0});
     detection_areas.push_back({225.0, 230.0, 9.0, 20.0});
     detection_areas.push_back({133.0, 141.0, 2.0, 6.0});
-    detection_areas.push_back({42.0, 47.0, 8.5, 17.0});
-    detection_areas.push_back({-48.0, -35.0, -3.0, 4.0});
+    detection_areas.push_back({42.0, 47.0, 8.0, 17.0});
+    detection_areas.push_back({-47.0, -35.0, -3.0, 4.0});
 
     pose_sub = nh.subscribe("/Unity_ROS_message_Rx/OurCar/CoM/pose", 1, &ColorDetectionNode::poseCallback, this);
 }
@@ -76,12 +76,12 @@ void ColorDetectionNode::poseCallback(const geometry_msgs::PoseStamped::ConstPtr
 void ColorDetectionNode::semanticCameraCallback(const sensor_msgs::ImageConstPtr& msg)
 {
     bool has_light = false;
-    std_msgs::Bool stop_msg;
-    stop_msg.data = false;
+    auto_car_perception::ObstacleState stop_msg;
+    stop_msg.state = false;
 
     if (!rgb_received) {
         // ROS_WARN("No RGB image received yet, skipping semantic callback.");
-        std_msgs::Bool presence_msg; presence_msg.data = false;
+        auto_car_perception::ObstacleState presence_msg; presence_msg.state = false;
         traffic_light_presence_pub.publish(presence_msg);
         return;
     }
@@ -91,7 +91,7 @@ void ColorDetectionNode::semanticCameraCallback(const sensor_msgs::ImageConstPtr
         semantic_image = cv_bridge::toCvCopy(msg, "bgr8")->image;
     } catch (cv_bridge::Exception& e) {
         ROS_ERROR("cv_bridge error (semantic): %s", e.what());
-        traffic_light_presence_pub.publish(std_msgs::Bool());
+        traffic_light_presence_pub.publish(auto_car_perception::ObstacleState());
         return;
     }
 
@@ -181,8 +181,8 @@ void ColorDetectionNode::semanticCameraCallback(const sensor_msgs::ImageConstPtr
         stop_pub.publish(stop_msg);
     }
         
-    std_msgs::Bool presence_msg;
-    presence_msg.data = has_light;
+    auto_car_perception::ObstacleState presence_msg;
+    presence_msg.state = has_light;
     traffic_light_presence_pub.publish(presence_msg);
 
     sensor_msgs::Image debug_msg;
@@ -219,23 +219,23 @@ void ColorDetectionNode::detectColorsInROI(const cv::Mat& roi)
 
     double threshold = area_total / 50.0;
 
-    std_msgs::Bool stop_msg;
+   auto_car_perception::ObstacleState stop_msg;
 
     if (area_red > threshold) {
         ROS_INFO("Detected RED");
-        stop_msg.data = true;
+        stop_msg.state = true;
         stop_pub.publish(stop_msg);
     } else if (area_green > threshold) {
         ROS_INFO("Detected GREEN");
-        stop_msg.data = false;
+        stop_msg.state = false;
         stop_pub.publish(stop_msg);
     } else if (area_yellow > threshold) {
         ROS_INFO("Detected YELLOW");
-        stop_msg.data = true;
+        stop_msg.state = true;
         stop_pub.publish(stop_msg);
     } else {
         ROS_INFO("No signal detected");
-        stop_msg.data = false;
+        stop_msg.state = false;
         stop_pub.publish(stop_msg);
     }
 }

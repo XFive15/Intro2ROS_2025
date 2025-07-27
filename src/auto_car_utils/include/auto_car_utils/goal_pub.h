@@ -7,7 +7,7 @@
 #include <move_base_msgs/MoveBaseActionGoal.h>
 #include <actionlib_msgs/GoalID.h>
 #include <nav_msgs/Odometry.h>
-#include <std_msgs/Bool.h>
+#include <auto_car_perception/ObstacleState.h>
 #include <vector>
 
 class GoalPublisher
@@ -17,7 +17,7 @@ public:
 
 private:
     void odomCallback(const nav_msgs::Odometry::ConstPtr& msg);
-    void stopCallback(const std_msgs::Bool::ConstPtr& msg);
+    void stopCallback(const auto_car_perception::ObstacleState::ConstPtr& msg);
     void publishGoal(const geometry_msgs::Point& goal_point);
     void publishNextGoal();
     bool isClose(const geometry_msgs::Point& pos1, const geometry_msgs::Point& pos2) const;

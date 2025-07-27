@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   image_transport
   simulation
+  message_generation
   # roscpp
   # rospy
   # std_msgs
@@ -33,9 +34,18 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Find OpenCV if needed
 find_package(OpenCV REQUIRED)
-
+  add_message_files(
+  FILES
+  ObstacleState.msg
+  )
+  generate_messages(
+  DEPENDENCIES
+  std_msgs
+  )
+ 
 ## Declare a catkin package
-catkin_package()
+catkin_package(
+CATKIN_DEPENDS roscpp sensor_msgs geometry_msgs std_msgs message_runtime)
 
 ## Specify additional locations of header files
 include_directories(

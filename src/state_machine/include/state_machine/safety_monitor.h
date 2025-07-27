@@ -2,7 +2,7 @@
 #define SAFETY_MONITOR_H
 
 #include <ros/ros.h>
-#include <std_msgs/Bool.h>
+#include <auto_car_perception/ObstacleState.h>
 #include <geometry_msgs/Twist.h>
 
 class SafetyMonitor
@@ -13,10 +13,10 @@ public:
     
 private:
     // Callbacks
-    void stopCallback(const std_msgs::Bool::ConstPtr& msg);
-    void trafficLightCallback(const std_msgs::Bool::ConstPtr& msg);
-    void obstacleStopCallback(const std_msgs::Bool::ConstPtr& msg);
-    void obstacleSlowCallback(const std_msgs::Bool::ConstPtr& msg);
+    void stopCallback(const auto_car_perception::ObstacleState::ConstPtr& msg);
+    void trafficLightCallback(const auto_car_perception::ObstacleState::ConstPtr& msg);
+    void obstacleStopCallback(const auto_car_perception::ObstacleState::ConstPtr& msg);
+    void obstacleSlowCallback(const auto_car_perception::ObstacleState::ConstPtr& msg);
     void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg);
     
     // Velocity publishing functions

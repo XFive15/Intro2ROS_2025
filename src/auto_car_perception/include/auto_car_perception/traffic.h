@@ -3,12 +3,13 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
-#include <std_msgs/Bool.h>
+#include <auto_car_perception/ObstacleState.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
 #include <simulation/VehicleControl.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <limits> 
+
 
 struct Area {
     double x_min, x_max;
