@@ -1,9 +1,9 @@
-#include "safety_monitor.h"
+#include "state_machine.h"
 #include <ros/ros.h>
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "safety_monitor");
+    ros::init(argc, argv, "state_machine");
     ros::NodeHandle nh;
     
     SafetyMonitor monitor(nh);

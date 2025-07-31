@@ -15,8 +15,6 @@
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
-  <depend>auto_car_perception</depend
- >
 
   <export>
   </export>

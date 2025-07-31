@@ -1,6 +1,6 @@
-#include "safety_monitor.h"
+#include "state_machine.h"
 #include "state_machine/StateStatus.h"
-#include "auto_car_perception/ObstacleState.h"
+
 SafetyMonitor::SafetyMonitor(ros::NodeHandle& nh) 
     : nh_(nh), 
       current_state_(State::NORMAL),
@@ -55,7 +55,7 @@ void SafetyMonitor::update()
             status_msg.current_state = "SLOW_DOWN_TRIFFIC";  // Traffic light slow speed
             break;
         case State::SLOW_DOWN_OBSTACLE:
-            publishLimitedVelocity(0.35);
+            publishLimitedVelocity(0.25);
             status_msg.current_state = "SLOW_DOWN_OBSTACLE";  // Obstacle slow speed
             break;
         case State::STOP:
@@ -68,40 +68,40 @@ void SafetyMonitor::update()
 }
 
 // Callback implementations remain unchanged
-void SafetyMonitor::stopCallback(const auto_car_perception::ObstacleState::ConstPtr& msg) {
-    if (msg->state != prev_stop_condition_) {
-        ROS_INFO_COND(msg->state, "Stop condition activated (traffic light)");
-        ROS_INFO_COND(!msg->state, "Stop condition deactivated (traffic light)");
-        prev_stop_condition_ = msg->state;
+void SafetyMonitor::stopCallback(const std_msgs::Bool::ConstPtr& msg) {
+    if (msg->data != prev_stop_condition_) {
+        ROS_INFO_COND(msg->data, "Stop condition activated (traffic light)");
+        ROS_INFO_COND(!msg->data, "Stop condition deactivated (traffic light)");
+        prev_stop_condition_ = msg->data;
     }
-    stop_condition_active_ = msg->state;
+    stop_condition_active_ = msg->data;
 }
 
-void SafetyMonitor::trafficLightCallback(const auto_car_perception::ObstacleState::ConstPtr& msg) {
-    if (msg->state != prev_traffic_light_) {
-        ROS_INFO_COND(msg->state, "Traffic light detected");
-        ROS_INFO_COND(!msg->state, "Traffic light cleared");
-        prev_traffic_light_ = msg->state;
+void SafetyMonitor::trafficLightCallback(const std_msgs::Bool::ConstPtr& msg) {
+    if (msg->data != prev_traffic_light_) {
+        ROS_INFO_COND(msg->data, "Traffic light detected");
+        ROS_INFO_COND(!msg->data, "Traffic light cleared");
+        prev_traffic_light_ = msg->data;
     }
-    traffic_light_active_ = msg->state;
+    traffic_light_active_ = msg->data;
 }
 
-void SafetyMonitor::obstacleStopCallback(const auto_car_perception::ObstacleState::ConstPtr& msg) {
-    if (msg->state != prev_obstacle_stop_) {
-        ROS_INFO_COND(msg->state, "Obstacle stop condition activated");
-        ROS_INFO_COND(!msg->state, "Obstacle stop condition deactivated");
-        prev_obstacle_stop_ = msg->state;
+void SafetyMonitor::obstacleStopCallback(const std_msgs::Bool::ConstPtr& msg) {
+    if (msg->data != prev_obstacle_stop_) {
+        ROS_INFO_COND(msg->data, "Obstacle stop condition activated");
+        ROS_INFO_COND(!msg->data, "Obstacle stop condition deactivated");
+        prev_obstacle_stop_ = msg->data;
     }
-    obstacle_stop_active_ = msg->state;
+    obstacle_stop_active_ = msg->data;
 }
 
-void SafetyMonitor::obstacleSlowCallback(const auto_car_perception::ObstacleState::ConstPtr& msg) {
-    if (msg->state != prev_obstacle_slow_) {
-        ROS_INFO_COND(msg->state, "Obstacle slow condition activated");
-        ROS_INFO_COND(!msg->state, "Obstacle slow condition deactivated");
-        prev_obstacle_slow_ = msg->state;
+void SafetyMonitor::obstacleSlowCallback(const std_msgs::Bool::ConstPtr& msg) {
+    if (msg->data != prev_obstacle_slow_) {
+        ROS_INFO_COND(msg->data, "Obstacle slow condition activated");
+        ROS_INFO_COND(!msg->data, "Obstacle slow condition deactivated");
+        prev_obstacle_slow_ = msg->data;
     }
-    obstacle_slow_active_ = msg->state;
+    obstacle_slow_active_ = msg->data;
 }
 
 void SafetyMonitor::cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg) {

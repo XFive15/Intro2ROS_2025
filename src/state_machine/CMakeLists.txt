@@ -6,7 +6,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   message_generation
-  auto_car_perception
 )
 add_message_files(
   FILES
@@ -32,21 +31,21 @@ include_directories(
 )
 
 add_library(${PROJECT_NAME}
-  src/safety_monitor.cpp
+  src/state_machine.cpp
 )
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 
-add_executable(safety_monitor_node
-  src/safety_monitor_node.cpp
+add_executable(state_machine_node
+  src/state_machine_node.cpp
 )
-target_link_libraries(safety_monitor_node
+target_link_libraries(state_machine_node
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 
-install(TARGETS safety_monitor_node
+install(TARGETS state_machine_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
