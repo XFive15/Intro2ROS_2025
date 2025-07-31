@@ -29,7 +29,7 @@ rosrun auto_car_perception obstacle_detection_node
 ```
 
 ```bash
-rosrun state_machine safety_monitor_node 
+rosrun state_machine state_machine_node 
 ```
 ```bash
 rosrun auto_car_utils goal_pub
